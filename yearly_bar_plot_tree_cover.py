@@ -153,7 +153,7 @@ if __name__ == "__main__":
     parser.add_argument("--shape_file", type=str)
     args = parser.parse_args()
 
-
+    file_name = args.shape_file.split('/')[-1].split('.')[0]
     start = ee.Date(args.start_date);
     end = ee.Date(args.end_date)
     shp_file = gpd.read_file(args.shape_file,crs='EPSG:4326')
@@ -168,14 +168,14 @@ if __name__ == "__main__":
             geometry = ee.Geometry.Polygon(shp_to_ee_fmt(shp_file,feature_index))
             region = geometry.union(region)
     print('Done!')
-
+    
     dynamic_world_data,labels = pixel_stats_dynamic_world(region,start,end)
-    plot_multiple_bar_from_dict(dynamic_world_data,labels,'dyanmic_world.png',DW_CLASSES,'dynamicworld')
+    plot_multiple_bar_from_dict(dynamic_world_data,labels,file_name + '_dynamic_world.png',DW_CLASSES,'dynamicworld')
     
     worldcover,labels = pixel_stats_world_cover(region)
-    plot_multiple_bar_from_dict(worldcover,labels,'worldcover.png',WC_CLASSES,'worldcover')
+    plot_multiple_bar_from_dict(worldcover,labels,file_name + "_world_cover.png",WC_CLASSES,'worldcover')
 
     gfc_data = pixel_stats_global_forest_watch(region,start,end)
     print(gfc_data)
-    plot_multiple_bar_from_dict(gfc_data,[2020],'gfw_data.png',DW_CLASSES,'gfw')
+    plot_multiple_bar_from_dict(gfc_data,[2020],file_name + '_gfw_data.png',DW_CLASSES,'gfw')
     print('runtime: %f seconds' % (time.time() - start_time))
