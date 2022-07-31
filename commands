@@ -1,0 +1,1 @@
+python3 yearly_bar_plot_tree_cover.py --start_date 2020-01-01 --end_date 2021-01-01  --shape_file /home/graham/Downloads/Bacajai_JP1.shp
