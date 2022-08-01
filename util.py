@@ -7,6 +7,20 @@ def shp_to_ee_fmt(geodf,index):
     data = json.loads(geodf.to_json())
     return data['features'][index]['geometry']['coordinates']
 
+
+
+def get_whole_region(shp_file):
+    data = json.loads(shp_file.to_json())
+    features = len(data['features'])
+    region = None
+    for feature_index in range(0,features):
+        if(region == None):
+            region = ee.Geometry.Polygon(shp_to_ee_fmt(shp_file,feature_index))
+        else:
+            geometry = ee.Geometry.Polygon(shp_to_ee_fmt(shp_file,feature_index))
+            region = geometry.union(region)
+    return region
+    
 def add_ee_layer(self, ee_object, vis_params, name):
     try:    
         # display ee.Image()

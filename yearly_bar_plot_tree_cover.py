@@ -43,7 +43,7 @@ def pixel_stats_dynamic_world(region,start,end):
         labels.append(start.format('YYYY').getInfo())
         # dwImage = dwImage.select(CLASSES).reduce(ee.Reducer.max())
         classification = dwImage.select('label').clip(region)
-        pixelCountStats = classification.reduceRegion(reducer=ee.Reducer.frequencyHistogram(),geometry=region,bestEffort=True,maxPixels=1e9,scale=100)
+        pixelCountStats = classification.reduceRegion(reducer=ee.Reducer.frequencyHistogram(),geometry=region,bestEffort=True,maxPixels=1e8,scale=1)
         # total = classification.reduceRegion(reducer=ee.Reducer.count(),geometry=region,scale=1,bestEffort=True)
         # print(pixelCountStats.getInfo())
         pixelCounts = ee.Dictionary(pixelCountStats.get('label'));
@@ -57,7 +57,7 @@ def pixel_stats_dynamic_world(region,start,end):
         print(output)
         # print(totals)
         start = start.advance(1,'year')
-
+    print(output)
     return (transform_normalize_dict(output),labels)
 
 
@@ -86,12 +86,12 @@ def plot_multiple_bar_from_dict(data,labels,file_name,classes,datasource):
     ax.set_title('Land types in hulu batang hari')
     # fig.tight_layout()
     plt.legend(bbox_to_anchor=(1.02, 1), loc='upper left', borderaxespad=0)
-    plt.savefig(file_name)
+    plt.savefig(file_name,bbox_inches='tight')
     
 
 def pixel_stats_world_cover(region):
     dataset = ee.ImageCollection("ESA/WorldCover/v100").first().clip(region)
-    pixelCountStats = dataset.reduceRegion(reducer=ee.Reducer.frequencyHistogram(),geometry=region,bestEffort=True,maxPixels=1e9,scale=100)
+    pixelCountStats = dataset.reduceRegion(reducer=ee.Reducer.frequencyHistogram(),geometry=region,bestEffort=True,maxPixels=1e8,scale=1)
     output = pixelCountStats.getInfo()['Map']
     #normalize
     print(output)
@@ -105,6 +105,26 @@ def pixel_stats_world_cover(region):
 
 
 def pixel_stats_global_forest_watch(region,start,end):
+
+# IS THIS A GOOD OPTION FOR FINDING DIFF? 
+#     // Load MODIS EVI imagery.
+# var collection = ee.ImageCollection('MODIS/006/MYD13A1').select('EVI');
+
+# // Define reference conditions from the first 10 years of data.
+# var reference = collection.filterDate('2001-01-01', '2010-12-31')
+#   // Sort chronologically in descending order.
+#   .sort('system:time_start', false);
+
+# // Compute the mean of the first 10 years.
+# var mean = reference.mean();
+
+# // Compute anomalies by subtracting the 2001-2010 mean from each image in a
+# // collection of 2011-2014 images. Copy the date metadata over to the
+# // computed anomaly images in the new collection.
+# var series = collection.filterDate('2011-01-01', '2014-12-31').map(function(image) {
+#     return image.subtract(mean).set('system:time_start', image.get('system:time_start'));
+# });
+
     cc = ee.Number(10);
     gfc2021 = ee.Image('UMD/hansen/global_forest_change_2021_v1_9')
     canopyCover = gfc2021.select(['treecover2000'])
@@ -113,7 +133,8 @@ def pixel_stats_global_forest_watch(region,start,end):
         reducer= ee.Reducer.sum(),
         geometry= geometry,
         scale= 1,
-        maxPixels= 1e13);
+        maxPixels= 1e9,
+        bestEffort=True);
 
     forest_size = list(forestSize.getInfo().values())[0]
 
@@ -128,7 +149,8 @@ def pixel_stats_global_forest_watch(region,start,end):
             reducer= ee.Reducer.sum(),
             geometry=geometry,
             scale= 1,
-            maxPixels= 1e11
+            maxPixels= 1e9,
+            bestEffort=True
         )
         losses.append(list(lossSize.getInfo().values())[0])
         print(losses)
@@ -170,6 +192,7 @@ if __name__ == "__main__":
     print('Done!')
     
     dynamic_world_data,labels = pixel_stats_dynamic_world(region,start,end)
+    print(dynamic_world_data)
     plot_multiple_bar_from_dict(dynamic_world_data,labels,file_name + '_dynamic_world.png',DW_CLASSES,'dynamicworld')
     
     worldcover,labels = pixel_stats_world_cover(region)
