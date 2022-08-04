@@ -3,15 +3,20 @@
 import geopandas as gpd
 import json
 import ee
-from util import add_ee_layer,shp_to_ee_fmt
 import folium
+from util import add_ee_layer, get_whole_region
+from argparse import ArgumentParser
+import folium
+import ee
+import seaborn
+import geopandas as gpd
+import json
+import time 
+import requests
+from pydrive.drive import GoogleDrive
+import time 
 
 
-try:     
-    ee.Initialize()
-except:
-    ee.Authenticate()
-    ee.Initialize()
 
 if __name__ == '__main__':
     
