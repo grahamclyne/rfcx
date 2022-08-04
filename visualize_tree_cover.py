@@ -1,4 +1,3 @@
-from defer import return_value
 from util import add_ee_layer, shp_to_ee_fmt
 from argparse import ArgumentParser
 import folium
@@ -8,7 +7,6 @@ import geopandas as gpd
 import json
 import time 
 import requests
-from pydrive.drive import GoogleDrive
 import time 
 
 
