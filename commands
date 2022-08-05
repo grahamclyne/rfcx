@@ -12,3 +12,6 @@ python3 visualize_tree_cover.py --start_date 2020-01-01 --end_date 2021-01-01 --
 40 seconds run time
 python3 visualize_tree_cover.py --start_date 2020-01-01 --end_date 2021-01-01 --shape_file /Users/gclyne/Downloads/RFCx_GQ_Shapefiles/Hulu_Batang_Hari_sites_Buffer1k.shp
 
+25 minutes to export one of the regions of bacajai jp 1 
+
+45 hours of dev work

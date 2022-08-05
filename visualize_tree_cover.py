@@ -20,10 +20,10 @@ def add_copernicus_layer(region,start,end):
 def visualize_dynamic_world(region,start,end,file_name):
     my_map = add_copernicus_layer(region,start,end)
     dw = ee.ImageCollection('GOOGLE/DYNAMICWORLD/V1').filterDate(start,end).filterBounds(region)
-    dwImage = ee.Image(dw.mode()).clip(region);
-    classification = dwImage.select('label');
+    dwImage = ee.Image(dw.mode()).clip(region)
+    classification = dwImage.select('label')
     dwVisParams = {'min': 0,'max': 8,'palette': ['#419BDF', '#397D49', '#88B053', '#7A87C6', '#E49635', '#DFC35A','#C4281B', '#A59B8F', '#B39FE1']}
-    my_map.add_ee_layer(classification, dwVisParams, 'Classified Image');
+    my_map.add_ee_layer(classification, dwVisParams, 'Classified Image')
     my_map.save(file_name + '_dw.html')
 
 
@@ -31,7 +31,7 @@ def visualize_world_cover(region,start,end,file_name):
     my_map = add_copernicus_layer(region,start,end)
     wc = ee.ImageCollection("ESA/WorldCover/v100").first().clip(region)
     visualization = {'bands': ['Map']}
-    my_map.add_ee_layer(wc, visualization, 'Classified Image');
+    my_map.add_ee_layer(wc, visualization, 'Classified Image')
     my_map.save(file_name + '_wc.html')
 
 
@@ -69,7 +69,6 @@ if __name__ == "__main__":
     parser.add_argument("--shape_file", type=str)
 
     args = parser.parse_args()
-    seaborn.set()
     folium.Map.add_ee_layer = add_ee_layer    
     try:     
         ee.Initialize()
