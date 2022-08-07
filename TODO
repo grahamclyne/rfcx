@@ -1,3 +1,4 @@
 show month to month change for region and single area - want to see how noisy data is 
-make sure there are correct num of geometries in single shape files!
-plot 3d graph with all sites
+make scale a parameter
+fix geomtery[0][0][0] etc
+make before_after into parameterized script

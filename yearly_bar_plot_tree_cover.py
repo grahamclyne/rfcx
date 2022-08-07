@@ -5,10 +5,8 @@ import geopandas as gpd
 from collections import defaultdict
 import matplotlib.pyplot as plt
 from constants import DW_CLASSES,WC_CLASSES
-from util import add_ee_layer,shp_to_ee_fmt
-import seaborn
+from util import add_ee_layer,get_whole_region
 from argparse import ArgumentParser
-import json
 import time
 
 
@@ -39,25 +37,13 @@ def pixel_stats_dynamic_world(region,start,end):
     while(end.difference(start,'days').gt(0).getInfo()):
         temp_end = start.advance(1,'year')
         dw = ee.ImageCollection('GOOGLE/DYNAMICWORLD/V1').filterDate(start,temp_end).filterBounds(region)
-        dwImage = ee.Image(dw.mode()).clip(region) #mode() returns most common pixel value
+        dwImage = ee.Image(dw.max()).clip(region) #mode() returns most common pixel value
         labels.append(start.format('YYYY').getInfo())
-        # dwImage = dwImage.select(CLASSES).reduce(ee.Reducer.max())
         classification = dwImage.select('label').clip(region)
-        pixelCountStats = classification.reduceRegion(reducer=ee.Reducer.frequencyHistogram(),geometry=region,bestEffort=True,maxPixels=1e8,scale=1)
-        # total = classification.reduceRegion(reducer=ee.Reducer.count(),geometry=region,scale=1,bestEffort=True)
-        # print(pixelCountStats.getInfo())
+        pixelCountStats = classification.reduceRegion(reducer=ee.Reducer.frequencyHistogram(),geometry=region,bestEffort=True,maxPixels=1e8,scale=10)
         pixelCounts = ee.Dictionary(pixelCountStats.get('label'));
-        # print(total.getInfo())
         output.append(pixelCounts.getInfo())
-        print('finished pixel count stats')
-
-        # totals.append(total.getInfo()['label'])
-        print('finished total count')
-
-        print(output)
-        # print(totals)
         start = start.advance(1,'year')
-    print(output)
     return (transform_normalize_dict(output),labels)
 
 
@@ -91,11 +77,9 @@ def plot_multiple_bar_from_dict(data,labels,file_name,classes,datasource):
 
 def pixel_stats_world_cover(region):
     dataset = ee.ImageCollection("ESA/WorldCover/v100").first().clip(region)
-    pixelCountStats = dataset.reduceRegion(reducer=ee.Reducer.frequencyHistogram(),geometry=region,bestEffort=True,maxPixels=1e8,scale=1)
+    pixelCountStats = dataset.reduceRegion(reducer=ee.Reducer.frequencyHistogram(),geometry=region,bestEffort=True,maxPixels=1e8,scale=10)
     output = pixelCountStats.getInfo()['Map']
     #normalize
-    print(output)
-    print(sum(output.values()))
     normalized_output = {}
     for key in output.keys():
         normalized_output[key] = output[key] / sum(output.values())
@@ -105,34 +89,14 @@ def pixel_stats_world_cover(region):
 
 
 def pixel_stats_global_forest_watch(region,start,end):
-
-# IS THIS A GOOD OPTION FOR FINDING DIFF? 
-#     // Load MODIS EVI imagery.
-# var collection = ee.ImageCollection('MODIS/006/MYD13A1').select('EVI');
-
-# // Define reference conditions from the first 10 years of data.
-# var reference = collection.filterDate('2001-01-01', '2010-12-31')
-#   // Sort chronologically in descending order.
-#   .sort('system:time_start', false);
-
-# // Compute the mean of the first 10 years.
-# var mean = reference.mean();
-
-# // Compute anomalies by subtracting the 2001-2010 mean from each image in a
-# // collection of 2011-2014 images. Copy the date metadata over to the
-# // computed anomaly images in the new collection.
-# var series = collection.filterDate('2011-01-01', '2014-12-31').map(function(image) {
-#     return image.subtract(mean).set('system:time_start', image.get('system:time_start'));
-# });
-
     cc = ee.Number(10);
     gfc2021 = ee.Image('UMD/hansen/global_forest_change_2021_v1_9')
     canopyCover = gfc2021.select(['treecover2000'])
     canopyCover10 = canopyCover.gte(cc).selfMask()
     forestSize = canopyCover10.reduceRegion(
         reducer= ee.Reducer.sum(),
-        geometry= geometry,
-        scale= 1,
+        geometry= region,
+        scale= 10,
         maxPixels= 1e9,
         bestEffort=True);
 
@@ -140,27 +104,35 @@ def pixel_stats_global_forest_watch(region,start,end):
 
     treeLoss = gfc2021.select(['lossyear']);
     losses = []
-    
+    gfc2021.select(['gain']);
     for i in range(1,int(end.format('YY').getInfo())):
         print(f'calculating year {i}')
         treeLoss01 = treeLoss.eq(i).selfMask()
         treecoverLoss01 = canopyCover10.And(treeLoss01).rename('loss' + str(i)).selfMask();
         lossSize = treecoverLoss01.reduceRegion(
             reducer= ee.Reducer.sum(),
-            geometry=geometry,
-            scale= 1,
+            geometry=region,
+            scale= 10,
             maxPixels= 1e9,
             bestEffort=True
         )
         losses.append(list(lossSize.getInfo().values())[0])
         print(losses)
-    lost = sum(losses)
+    gains = gfc2021.select(['gain'])
+    # canopyCover10 = canopyCover.gte(ee.Number(10)).selfMask()
+    gains_summed = gains.reduceRegion(
+        reducer= ee.Reducer.sum(),
+        geometry= region,
+        scale= 10,
+        maxPixels= 1e9,
+        bestEffort=True);
+
+    lost = sum(losses) + gains_summed.getInfo()['gain']
     diff = (forest_size - lost) / forest_size
     return [diff]
 
 if __name__ == "__main__":
     start_time = time.time()
-    seaborn.set()
     folium.Map.add_ee_layer = add_ee_layer    
     try:     
         ee.Initialize()
@@ -179,26 +151,16 @@ if __name__ == "__main__":
     start = ee.Date(args.start_date);
     end = ee.Date(args.end_date)
     shp_file = gpd.read_file(args.shape_file,crs='EPSG:4326')
-    data = json.loads(shp_file.to_json())
-    features = len(data['features'])
-    region = None
-    print('Compiling regions.....')
-    for feature_index in range(0,features):
-        if(region == None):
-            region = ee.Geometry.Polygon(shp_to_ee_fmt(shp_file,feature_index))
-        else:
-            geometry = ee.Geometry.Polygon(shp_to_ee_fmt(shp_file,feature_index))
-            region = geometry.union(region)
-    print('Done!')
+    region = get_whole_region(shp_file)
     
     dynamic_world_data,labels = pixel_stats_dynamic_world(region,start,end)
     print(dynamic_world_data)
-    plot_multiple_bar_from_dict(dynamic_world_data,labels,file_name + '_dynamic_world.png',DW_CLASSES,'dynamicworld')
+    plot_multiple_bar_from_dict(dynamic_world_data,labels,file_name + 'dynamic_world.png',DW_CLASSES,'dynamicworld')
     
-    worldcover,labels = pixel_stats_world_cover(region)
-    plot_multiple_bar_from_dict(worldcover,labels,file_name + "_world_cover.png",WC_CLASSES,'worldcover')
+    # worldcover,labels = pixel_stats_world_cover(region)
+    # plot_multiple_bar_from_dict(worldcover,labels,file_name + "_world_cover.png",WC_CLASSES,'worldcover')
 
-    gfc_data = pixel_stats_global_forest_watch(region,start,end)
-    print(gfc_data)
-    plot_multiple_bar_from_dict(gfc_data,[2020],file_name + '_gfw_data.png',DW_CLASSES,'gfw')
-    print('runtime: %f seconds' % (time.time() - start_time))
+    # gfc_data = pixel_stats_global_forest_watch(region,start,end)
+    # print(gfc_data)
+    # plot_multiple_bar_from_dict(gfc_data,[2020],file_name + '_gfw_data.png',DW_CLASSES,'gfw')
+    # print('runtime: %f seconds' % (time.time() - start_time))
