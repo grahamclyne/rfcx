@@ -1,0 +1,24 @@
+
+~ 20 min runtime
+python3 yearly_bar_plot_tree_cover.py --start_date 2020-01-01 --end_date 2021-01-01  --shape_file /Users/gclyne/Downloads/rfcx_sensor_placement/Graham_Amazon/Bacajai_JP1.shp
+python3 yearly_bar_plot_tree_cover.py --start_date 2020-01-01 --end_date 2021-01-01  --shape_file /Users/gclyne/Downloads/RFCx_GQ_Shapefiles/Hulu_Batang_Hari_sites_Buffer1k.shp
+python3 yearly_bar_plot_tree_cover.py --start_date 2020-01-01 --end_date 2021-01-01  --shape_file /Users/gclyne/Downloads/RFCx_GQ_Shapefiles/Tembe_Reserve_sites_Buffer1k.shp
+
+
+#VISUALIZATION
+~5 seconds run time
+python3 visualize_tree_cover.py --start_date 2020-01-01 --end_date 2021-01-01 --shape_file /Users/gclyne/Downloads/rfcx_sensor_placement/Graham_Amazon/Bacajai_JP1.shp 
+
+40 seconds run time
+python3 visualize_tree_cover.py --start_date 2020-01-01 --end_date 2021-01-01 --shape_file /Users/gclyne/Downloads/RFCx_GQ_Shapefiles/Hulu_Batang_Hari_sites_Buffer1k.shp
+
+25 minutes to export one of the regions of bacajai jp to google drive
+
+
+python3 yearly_bar_plot_tree_cover.py --start_date 2017-01-01 --end_date 2021-01-01  --shape_file /Users/gclyne/Downloads/rfcx_sensor_placement/Graham_Amazon/Bacajai_JP1.shp
+
+
+python 3dplot.py --start_date 2020-01-01 --end_date 2021-01-01 --shape_file /Users/gclyne/Downloads/RFCx_GQ_Shapefiles/Hulu_Batang_Hari_sites_Buffer1k.shp
+
+
+python before_after.py --start_period 2020-01-01 --end_period 2021-01-01 --shape_file /Users/gclyne/Downloads/RFCx_GQ_Shapefiles/Hulu_Batang_Hari_sites_Buffer1k.shp
