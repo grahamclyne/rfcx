@@ -9,7 +9,6 @@ import time
 from constants import DW_BANDS
 from argparse import ArgumentParser
 
-# This script generates a 3d plot of all geometries of a shapefile. The region's images are aggregated to a monthly time scale, and plotted using plotly
 
 if __name__ == '__main__':
     start_time = time.time()
@@ -22,7 +21,6 @@ if __name__ == '__main__':
     parser.add_argument("--start_date", type=str)
     parser.add_argument("--end_date", type=str)
     parser.add_argument("--shape_file", type=str)
-    parser.add_argument("--temporal_resolution", type=str)
     args = parser.parse_args()
     file_name = args.shape_file.split('/')[-1].split('.')[0]
 
@@ -34,27 +32,44 @@ if __name__ == '__main__':
 
     #for each feature in image, get monthly avg and get band values
     for index in range(len(data['features'])):
+    # for index in range(3):
         print(f'processing image: {index}')
-        #get image of region
+        # #get image of region
         region = ee.Geometry.Polygon(shp_to_ee_fmt(shp_file,index))
-        dw = ee.ImageCollection('GOOGLE/DYNAMICWORLD/V1').filterDate(args.start_date, args.end_date).filterBounds(region);
-        dwTimeSeries = dw.select(DW_BANDS)
+        dw = ee.ImageCollection('GOOGLE/DYNAMICWORLD/V1').filterDate(args.start_date, args.end_date).filterBounds(region).select('label')
 
-        #aggregate to monthly time series using mode reducer
-        if(args.temporal_resolution == 'month'):
-            reduced = tools.imagecollection.reduceEqualInterval(dwTimeSeries,interval=1,unit='month',reducer=ee.Reducer.mode())
-        elif(args.temporal_resolution == 'year'):
-            reduced = tools.imagecollection.reduceEqualInterval(dwTimeSeries,interval=1,unit='year',reducer=ee.Reducer.mode())
-        #use max reducer to get values of aggregated areas
+       
+        reduced = tools.imagecollection.reduceEqualInterval(dw,interval=1,unit='year',reducer=ee.Reducer.mode(),start_date=ee.Date(args.start_date),end_date=ee.Date(args.end_date)).select('label')
         data = tools.imagecollection.getValues(
         collection=reduced,
         geometry=region,
-        reducer='max',
+        reducer=ee.Reducer.frequencyHistogram(),
         scale=1,
-        maxPixels=1e9,
+        maxPixels=1e8,
         side='client',
         bestEffort=True)
-        datas.append(data)
+        # print(data)
+        new_dict = {}
+        for key,value in data.items():
+            print(key,value)
+            sum = 0
+            for val in value['label'].values():
+                print(val)
+                sum = sum + val
+            if('1' in value['label']):
+                new_dict[key] = {'1':value['label']['1'] / sum}
+            else:
+                new_dict[key] = {'1':0}
+        # print(new_dict)
+        datas.append(new_dict)
+
+
+        # dw = ee.ImageCollection('GOOGLE/DYNAMICWORLD/V1').filterDate('2020-01-01','2021-01-01').filterBounds(region)
+        # dwImage = ee.Image(dw.mode()) #mode() returns most common pixel value
+        # classification = dwImage.select('label').clip(region)
+        # pixelCountStats = classification.reduceRegion(reducer=ee.Reducer.frequencyHistogram().unweighted(),geometry=region,bestEffort=True,maxPixels=1e8,scale=1)
+        # print(pixelCountStats.get('label').getInfo())
+
 
 
     monthly_data_points = []
@@ -62,30 +77,28 @@ if __name__ == '__main__':
 
     #convert monthly image collection to pandas dataframe
     for data_point in datas: 
+        print(data_point)
         x = tools.imagecollection.data2pandas(data_point)
+        print(x)
+        x = x['1']
         x = x.reset_index()
+
         x = x.fillna(0)
         x['index'] = pd.to_numeric(x['index']).map(lambda x : x + 1) #adjust index to represent month clearly
         monthly_data_points.append(x)
         x = x.sort_values(by=['index'])
         fin_data.append(x)
-
     #create column to id each region
     for df_index in range(len(fin_data)):
         fin_data[df_index]['id'] = df_index
 
     #combine into one dataframe
     fin_df = pd.concat(fin_data)
+    fin_df = fin_df.groupby(['id','index'])['1'].aggregate('first').unstack()
+    fin_df.columns = ['2017','2018','2019','2020']
 
-    #melt dataframe for easy visualization
-    fin_df_melted = pd.melt(fin_df,id_vars=['index','id'])
-    
-    #generate image with 
-    fig = px.scatter_3d(fin_df_melted, x='index', y='id', z='value',
-                color='variable', labels={
-                        "index": "Month",
-                        "id": "Guardian ID",
-                        "value": "% of land cover"
-                    },title='')
-    fig.write_html( file_name + '3d.html')
+    fin_df = fin_df.reset_index()
+    fig = px.bar(fin_df,x='id',y=['2017','2018','2019','2020'],barmode='group')
+    fig.write_image('test_bar.png')
+    fin_df.to_csv('yearly_test.csv')
     print('runtime: %f seconds' % (time.time() - start_time))

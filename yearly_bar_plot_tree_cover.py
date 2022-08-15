@@ -36,10 +36,11 @@ def pixel_stats_dynamic_world(region,start,end):
     labels = []
     while(end.difference(start,'days').gt(0).getInfo()):
         temp_end = start.advance(1,'year')
-        dw = ee.ImageCollection('GOOGLE/DYNAMICWORLD/V1').filterDate(start,temp_end).filterBounds(region)
-        dwImage = ee.Image(dw.max()).clip(region) #mode() returns most common pixel value
+        dw = ee.ImageCollection('GOOGLE/DYNAMICWORLD/V1').filterDate(start,temp_end).filterBounds(region).select('label')
+        dwImage = ee.Image(dw.mode()).clip(region) #mode() returns most common pixel value
         labels.append(start.format('YYYY').getInfo())
         classification = dwImage.select('label').clip(region)
+        
         pixelCountStats = classification.reduceRegion(reducer=ee.Reducer.frequencyHistogram(),geometry=region,bestEffort=True,maxPixels=1e8,scale=10)
         pixelCounts = ee.Dictionary(pixelCountStats.get('label'));
         output.append(pixelCounts.getInfo())

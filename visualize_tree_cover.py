@@ -69,7 +69,7 @@ if __name__ == "__main__":
     end = ee.Date(args.end_date)
     shp_file = gpd.read_file(args.shape_file,crs='EPSG:4326')
     region = get_whole_region(shp_file)
-
+    
     visualize_dynamic_world(region,start,end,file_name)
     visualize_world_cover(region,start,end,file_name)
     print('runtime: %f seconds' % (time.time() - start_time))
