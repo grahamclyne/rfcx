@@ -1,20 +1,13 @@
 
 
-from util import add_ee_layer, get_whole_region
+from utils import add_ee_layer, get_whole_region
 from argparse import ArgumentParser
 import folium
 import ee
 import geopandas as gpd
-import json
 import time 
 import time 
 from argparse import ArgumentParser
-
-"""
-This script determines tree cover change before/after a specified time period
---start_period: the first date of the year to compare before
---end_period: the first date of the year to compare after
-"""
 
 
 if __name__ == '__main__':
@@ -58,5 +51,5 @@ if __name__ == '__main__':
     dw_vis_params = {'min': 0,'max': 8,'palette': ['#419BDF', '#397D49', '#88B053', '#7A87C6', '#E49635', '#DFC35A','#C4281B', '#A59B8F', '#B39FE1']}
     my_map.add_ee_layer(dw.select('label').filterDate(before_start,before_end).mode(), dw_vis_params,'base layer')
 
-    my_map.save(file_name + 'before_after_dw.html')
+    my_map.save(f'{file_name}_before_after_dw.html')
     print('runtime: %f seconds' % (time.time() - start_time))

@@ -132,6 +132,8 @@ def pixel_stats_global_forest_watch(region,start,end):
     diff = (forest_size - lost) / forest_size
     return [diff]
 
+
+
 if __name__ == "__main__":
     start_time = time.time()
     folium.Map.add_ee_layer = add_ee_layer    
