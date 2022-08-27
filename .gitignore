@@ -3,3 +3,7 @@
 /__pycache__
 /dask-worker-space
 /env
+*.csv
+*.zip
+*.tiff  
+*.tif
